@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — FRaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07090f; --surface: #0e1220; --surface-2: #161b2e; --surface-3: #1c2235;
+      --border: rgba(255,255,255,0.07); --border-hover: rgba(255,255,255,0.12);
+      --accent: #4f8ef7; --accent-2: #7c5af0; --accent-glow: rgba(79,142,247,0.15);
+      --text: #f0f4ff; --muted: #8a93b0; --success: #22d3a5; --warn: #f59e0b;
+      --danger: #ef4444; --radius: 12px; --radius-sm: 8px;
+      --sidebar-w: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w); min-height: 100vh; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; overflow-y: auto;
+    }
+    .sidebar-logo { padding: 22px 20px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .logo-icon { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .logo-text { font-weight: 700; font-size: 1rem; }
+
+    .org-pill {
+      margin: 14px 12px; padding: 10px 12px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+    }
+    .org-avatar { width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .org-name { font-size: 0.82rem; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .org-pill .chevron { color: var(--muted); font-size: 0.7rem; }
+
+    .nav-section { padding: 18px 0 8px; }
+    .nav-label { padding: 0 16px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+      cursor: pointer; font-size: 0.87rem; font-weight: 500; color: var(--muted);
+      border-radius: 0; transition: all .15s; margin: 1px 8px; border-radius: var(--radius-sm);
+      border: 1px solid transparent; text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active { background: var(--accent-glow); color: var(--accent); border-color: rgba(79,142,247,0.2); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 99px; }
+
+    .sidebar-bottom { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 10px; }
+    .user-av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #22d3a5, #4f8ef7); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .user-info .name { font-size: 0.82rem; font-weight: 600; }
+    .user-info .role { font-size: 0.75rem; color: var(--muted); }
+    .settings-btn { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; }
+
+    /* ── MAIN ── */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      height: 60px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; background: rgba(7,9,15,0.7); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 40;
+    }
+    .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.84rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; border: none; font-family: 'Inter', sans-serif; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+    .btn-primary:hover { box-shadow: 0 2px 16px rgba(79,142,247,0.4); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border-hover); }
+    .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-danger:hover { background: rgba(239,68,68,0.18); }
+    .btn-success { background: rgba(34,211,165,0.1); color: var(--success); border: 1px solid rgba(34,211,165,0.2); }
+
+    .content { padding: 32px; flex: 1; }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+    .stat-card .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+    .stat-card .value { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+    .stat-card .delta { font-size: 0.8rem; margin-top: 6px; }
+    .delta.up { color: var(--success); }
+    .delta.down { color: var(--danger); }
+    .delta.neutral { color: var(--muted); }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h2 { font-size: 0.95rem; font-weight: 700; }
+    .card-body { padding: 22px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 10px 14px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .badge.in { background: rgba(34,211,165,0.12); color: var(--success); }
+    .badge.out { background: rgba(239,68,68,0.1); color: var(--danger); }
+    .badge.pro { background: rgba(79,142,247,0.12); color: var(--accent); }
+    .badge.free { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .user-av-sm { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+    /* Search / filter bar */
+    .filter-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-wrap input { width: 100%; padding: 9px 14px 9px 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.87rem; font-family: 'Inter',sans-serif; outline: none; }
+    .search-wrap input:focus { border-color: rgba(79,142,247,0.4); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.85rem; }
+    select.filter { padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--muted); font-size: 0.85rem; font-family: 'Inter',sans-serif; outline: none; }
+    select.filter option { background: var(--surface-2); }
+
+    /* Subscription cards */
+    .sub-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
+    .sub-plan { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; position: relative; }
+    .sub-plan.current { border-color: var(--accent); }
+    .sub-plan .p-name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+    .sub-plan .p-price { font-size: 1.8rem; font-weight: 900; letter-spacing: -.02em; }
+    .sub-plan .p-price span { font-size: 0.9rem; color: var(--muted); }
+    .current-tag { position: absolute; top: 12px; right: 12px; background: var(--accent); color: #fff; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
+    .usage-bar-wrap { margin: 16px 0; }
+    .usage-bar-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    .usage-bar { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+    .usage-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; animation: slideUp .2s ease; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+    .modal h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+    .modal p { color: var(--muted); font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
+    .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; margin-top: -4px; }
+    .form-field { margin-bottom: 16px; }
+    .form-field label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 7px; }
+    .form-field input:not([type="checkbox"]):not([type="radio"]), .form-field select { width: 100%; padding: 10px 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.88rem; font-family: 'Inter',sans-serif; outline: none; }
+    .form-field input:not([type="checkbox"]):not([type="radio"]):focus, .form-field select:focus { border-color: rgba(79,142,247,0.4); }
+    input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; min-width: 15px; padding: 0; background: transparent; border: none; border-radius: 3px; flex-shrink: 0; cursor: pointer; accent-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 28px; right: 28px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; font-size: 0.88rem; font-weight: 500; z-index: 300; transform: translateY(80px); opacity: 0; transition: all .3s; display: flex; align-items: center; gap: 10px; max-width: 320px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: rgba(34,211,165,0.3); }
+    .toast.success::before { content: '✓'; color: var(--success); font-weight: 800; }
+
+    @media (max-width:1100px) { .stats-row { grid-template-columns: repeat(2,1fr); } .sub-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width:768px) { .sidebar { transform: translateX(-100%); } .main { margin-left: 0; } .stats-row { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">👁</div>
+    <span class="logo-text">FRaaS</span>
+  </div>
+
+  <div class="org-pill" onclick="showModal('orgModal')">
+    <div class="org-avatar">AC</div>
+    <span class="org-name">Acme Technologies</span>
+    <span class="chevron">⌄</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <a class="nav-item active" onclick="switchPanel('overview',this)">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+    <a class="nav-item" onclick="switchPanel('logs',this)">
+      <span class="nav-icon">📋</span> Attendance Logs
+      <span class="nav-badge">3</span>
+    </a>
+    <a class="nav-item" onclick="switchPanel('users',this)">
+      <span class="nav-icon">👥</span> Users
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Manage</div>
+    <a class="nav-item" onclick="switchPanel('register',this)">
+      <span class="nav-icon">➕</span> Register User
+    </a>
+    <a class="nav-item" onclick="switchPanel('subscription',this)">
+      <span class="nav-icon">💳</span> Subscription
+    </a>
+    <a class="nav-item" onclick="switchPanel('export',this)">
+      <span class="nav-icon">📤</span> Export & Data
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Developer</div>
+    <a class="nav-item" href="admin.html">
+      <span class="nav-icon">⚙️</span> Admin & Settings
+    </a>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="user-row">
+      <div class="user-av">OF</div>
+      <div class="user-info">
+        <div class="name">Olajide Fagbuji</div>
+        <div class="role">Owner · Pro plan</div>
+      </div>
+      <button class="settings-btn" onclick="alert('Settings coming soon')">⚙</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <h1 id="pageTitle">Dashboard</h1>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="showModal('sendLinkModal')">✉ Send Registration Link</button>
+      <button class="btn btn-primary" onclick="showModal('registerModal')">+ Register User</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── OVERVIEW ── -->
+    <div class="panel active" id="panel-overview">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="label">Total Users</div>
+          <div class="value">47</div>
+          <div class="delta up">↑ 3 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Present Today</div>
+          <div class="value" style="color:var(--success);">31</div>
+          <div class="delta neutral">of 47 enrolled</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Scans Today</div>
+          <div class="value">68</div>
+          <div class="delta neutral">34 IN · 34 OUT</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">API Calls</div>
+          <div class="value">1.2k</div>
+          <div class="delta up">↑ 18% vs. yesterday</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Today's Attendance — <span style="color:var(--muted);font-weight:500;">Sunday, 21 June 2026</span></h2>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-ghost" style="font-size:0.8rem;" onclick="switchPanel('logs',document.querySelector('.nav-item:nth-child(2)'))">View all logs →</button>
+          </div>
+        </div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Time In</th><th>Time Out</th><th>Status</th><th>Duration</th></tr></thead>
+            <tbody>
+              <tr><td><div class="user-cell"><div class="user-av-sm">OF</div>Olajide Fagbuji</div></td><td>08:42</td><td>—</td><td><span class="badge in">● IN</span></td><td>4h 18m</td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">TK</div>Tunde Kehinde</div></td><td>08:55</td><td>13:10</td><td><span class="badge out">● OUT</span></td><td>4h 15m</td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">AA</div>Amaka Adeyemi</div></td><td>09:01</td><td>—</td><td><span class="badge in">● IN</span></td><td>3h 59m</td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">BI</div>Bello Ibrahim</div></td><td>09:22</td><td>—</td><td><span class="badge in">● IN</span></td><td>3h 38m</td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">CO</div>Chidi Okonkwo</div></td><td>07:58</td><td>12:45</td><td><span class="badge out">● OUT</span></td><td>4h 47m</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ATTENDANCE LOGS ── -->
+    <div class="panel" id="panel-logs">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Search by name…" oninput="filterLogs(this.value)" />
+        </div>
+        <input type="date" class="filter" style="padding:9px 12px;" value="2026-06-21" />
+        <select class="filter">
+          <option>All statuses</option>
+          <option>IN</option>
+          <option>OUT</option>
+        </select>
+        <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Attendance Log</h2>
+          <span style="color:var(--muted);font-size:0.85rem;">62 records</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+            <tbody id="logsBody">
+              <tr><td><div class="user-cell"><div class="user-av-sm">OF</div>Olajide Fagbuji</div></td><td>2026-06-21</td><td>08:42:17</td><td><span class="badge in">● IN</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">TK</div>Tunde Kehinde</div></td><td>2026-06-21</td><td>08:55:03</td><td><span class="badge in">● IN</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">TK</div>Tunde Kehinde</div></td><td>2026-06-21</td><td>13:10:44</td><td><span class="badge out">● OUT</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">AA</div>Amaka Adeyemi</div></td><td>2026-06-21</td><td>09:01:55</td><td><span class="badge in">● IN</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">BI</div>Bello Ibrahim</div></td><td>2026-06-21</td><td>09:22:11</td><td><span class="badge in">● IN</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">CO</div>Chidi Okonkwo</div></td><td>2026-06-21</td><td>07:58:02</td><td><span class="badge in">● IN</span></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">CO</div>Chidi Okonkwo</div></td><td>2026-06-21</td><td>12:45:30</td><td><span class="badge out">● OUT</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div class="panel" id="panel-users">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Search users…" />
+        </div>
+        <button class="btn btn-primary" onclick="showModal('registerModal')">+ Register User</button>
+        <button class="btn btn-ghost" onclick="showModal('sendLinkModal')">✉ Send Link</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>Enrolled Users</h2><span style="color:var(--muted);font-size:0.85rem;">47 total</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Enrolled</th><th>Last Seen</th><th>Today</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><div class="user-cell"><div class="user-av-sm">OF</div>Olajide Fagbuji</div></td><td>2026-05-01</td><td>Today, 08:42</td><td><span class="badge in">● IN</span></td><td><button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 10px;">Re-enrol</button></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">TK</div>Tunde Kehinde</div></td><td>2026-05-02</td><td>Today, 13:10</td><td><span class="badge out">● OUT</span></td><td><button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 10px;">Re-enrol</button></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">AA</div>Amaka Adeyemi</div></td><td>2026-05-03</td><td>Today, 09:01</td><td><span class="badge in">● IN</span></td><td><button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 10px;">Re-enrol</button></td></tr>
+              <tr><td><div class="user-cell"><div class="user-av-sm">BI</div>Bello Ibrahim</div></td><td>2026-05-10</td><td>Today, 09:22</td><td><span class="badge in">● IN</span></td><td><button class="btn btn-ghost" style="font-size:0.78rem;padding:4px 10px;">Re-enrol</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REGISTER USER ── -->
+    <div class="panel" id="panel-register">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+        <div class="card">
+          <div class="card-header"><h2>Register User Directly</h2></div>
+          <div class="card-body">
+            <p style="color:var(--muted);font-size:0.88rem;margin-bottom:20px;">Enter the user's name and capture or upload a face photo for immediate enrolment.</p>
+            <div class="form-field"><label>Full Name</label><input type="text" placeholder="e.g. Amaka Adeyemi" /></div>
+            <div class="form-field"><label>Department <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input type="text" placeholder="e.g. Engineering" /></div>
+            <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;margin-bottom:16px;cursor:pointer;" onclick="alert('Camera / file picker')">
+              <div style="font-size:2rem;margin-bottom:8px;">📷</div>
+              <p style="font-size:0.85rem;color:var(--muted);">Click to open camera or drag & drop a photo</p>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="toast('User registered successfully!','success')">Register user →</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2>Send Registration Link</h2></div>
+          <div class="card-body">
+            <p style="color:var(--muted);font-size:0.88rem;margin-bottom:20px;">Users receive a personalised link to self-register their face from any device with a camera.</p>
+            <div class="form-field"><label>Full Name</label><input type="text" placeholder="Employee name" /></div>
+            <div class="form-field"><label>Email Address</label><input type="email" placeholder="employee@company.com" /></div>
+            <div class="form-field">
+              <label>Delivery method</label>
+              <select>
+                <option>Email link</option>
+                <option>Copy link (share manually)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-bottom:12px;" onclick="toast('Registration link sent!','success')">Send link ✉</button>
+            <button class="btn btn-ghost" style="width:100%;" onclick="copyLink()">📋 Copy registration link</button>
+            <div id="linkBox" style="display:none;margin-top:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:monospace;font-size:0.78rem;color:var(--accent);word-break:break-all;">https://app.facesync.io/register/org_527df553?token=abc123xyz</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SUBSCRIPTION ── -->
+    <div class="panel" id="panel-subscription">
+      <div class="sub-grid">
+        <div class="sub-plan">
+          <div class="p-name">Free</div>
+          <div class="p-price">₦0<span>/mo</span></div>
+          <div style="margin:16px 0;font-size:0.82rem;color:var(--muted);">20 users · 30-day logs</div>
+          <button class="btn btn-ghost" style="width:100%;opacity:.5;" disabled>Current plan</button>
+        </div>
+        <div class="sub-plan current">
+          <div class="current-tag">Active</div>
+          <div class="p-name">Pro</div>
+          <div class="p-price">₦15k<span>/mo</span></div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-label"><span>Users</span><span>47 / 200</span></div>
+            <div class="usage-bar"><div class="usage-fill" style="width:23%;"></div></div>
+          </div>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar-label"><span>API calls</span><span>1.2k / 10k</span></div>
+            <div class="usage-bar"><div class="usage-fill" style="width:12%;"></div></div>
+          </div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:12px;margin-bottom:16px;">Renews Jul 21, 2026</div>
+          <button class="btn btn-ghost" style="width:100%;font-size:0.82rem;" onclick="toast('Billing portal coming soon')">Manage billing</button>
+        </div>
+        <div class="sub-plan">
+          <div class="p-name">Enterprise</div>
+          <div class="p-price" style="font-size:1.4rem;">Custom</div>
+          <div style="margin:16px 0;font-size:0.82rem;color:var(--muted);">Unlimited users · SLA · SSO</div>
+          <button class="btn btn-primary" style="width:100%;" onclick="toast('Sales team will contact you shortly','success')">Contact sales →</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header"><h2>Billing History</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th><th>Invoice</th></tr></thead>
+            <tbody>
+              <tr><td>Jun 1, 2026</td><td>Pro Plan — June 2026</td><td>₦15,000</td><td><span class="badge in">Paid</span></td><td><a href="#" style="color:var(--accent);font-size:0.82rem;">Download</a></td></tr>
+              <tr><td>May 1, 2026</td><td>Pro Plan — May 2026</td><td>₦15,000</td><td><span class="badge in">Paid</span></td><td><a href="#" style="color:var(--accent);font-size:0.82rem;">Download</a></td></tr>
+              <tr><td>Apr 1, 2026</td><td>Pro Plan — April 2026</td><td>₦15,000</td><td><span class="badge in">Paid</span></td><td><a href="#" style="color:var(--accent);font-size:0.82rem;">Download</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPORT & DATA ── -->
+    <div class="panel" id="panel-export">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="card">
+          <div class="card-header"><h2>📤 Export Data</h2></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-field"><label>Date Range</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input type="date" value="2026-06-01" />
+                <input type="date" value="2026-06-21" />
+              </div>
+            </div>
+            <div class="form-field"><label>Export format</label>
+              <select><option>CSV (.csv)</option><option>JSON (.json)</option></select>
+            </div>
+            <div class="form-field"><label>Include fields</label>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.88rem;"><input type="checkbox" checked style="accent-color:var(--accent);"> Employee name</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.88rem;"><input type="checkbox" checked style="accent-color:var(--accent);"> Date & time</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.88rem;"><input type="checkbox" checked style="accent-color:var(--accent);"> IN/OUT status</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.88rem;"><input type="checkbox" style="accent-color:var(--accent);"> Department</label>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="toast('Export started — file will download shortly','success')">⬇ Export logs</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-header"><h2>🗑 Clear Logs</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:16px;">Permanently delete all attendance logs for your organisation. This cannot be undone. Face embeddings are <strong style="color:var(--text)">not</strong> affected.</p>
+              <button class="btn btn-danger" style="width:100%;" onclick="showModal('deleteModal')">⚠ Clear all attendance logs</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h2>💀 Delete Organisation</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:16px;">Permanently delete your organisation and all associated data including face embeddings, logs, and API keys. This action is irreversible.</p>
+              <button class="btn btn-danger" style="width:100%;opacity:.7;" onclick="alert('Please contact support@facesync.io to request account deletion.')">Delete organisation</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- MODALS -->
+<!-- Register User -->
+<div class="modal-overlay" id="registerModal" onclick="closeModalOutside(event,'registerModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
+    <h2>Register User</h2>
+    <p>Enter the employee's name and upload or capture a face photo.</p>
+    <div class="form-field"><label>Full Name</label><input type="text" placeholder="Jane Doe" /></div>
+    <div class="form-field"><label>Department</label><input type="text" placeholder="Engineering" /></div>
+    <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;margin-bottom:8px;" onclick="alert('Open camera')">
+      <div style="font-size:1.8rem;">📷</div>
+      <p style="font-size:0.82rem;color:var(--muted);margin-top:6px;">Tap to capture face</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('registerModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('registerModal');toast('User registered successfully!','success')">Register →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send Link -->
+<div class="modal-overlay" id="sendLinkModal" onclick="closeModalOutside(event,'sendLinkModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('sendLinkModal')">✕</button>
+    <h2>Send Registration Link</h2>
+    <p>The user will receive a personalised link to self-register their face.</p>
+    <div class="form-field"><label>Full Name</label><input type="text" placeholder="Employee name" /></div>
+    <div class="form-field"><label>Email Address</label><input type="email" placeholder="employee@company.com" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('sendLinkModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('sendLinkModal');toast('Registration link sent!','success')">Send link ✉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal-overlay" id="deleteModal" onclick="closeModalOutside(event,'deleteModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    <h2 style="color:var(--danger);">⚠ Clear all logs</h2>
+    <p>This will permanently delete all attendance records for <strong>Acme Technologies</strong>. Face embeddings will not be affected but all log data will be gone forever.</p>
+    <div class="form-field"><label>Type <strong>DELETE</strong> to confirm</label><input type="text" placeholder="DELETE" id="deleteConfirm" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Clear logs permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"></div>
+
+<script>
+  function switchPanel(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    el.classList.add('active');
+    const titles = { overview:'Dashboard', logs:'Attendance Logs', users:'Users', register:'Register User', subscription:'Subscription', export:'Export & Data' };
+    document.getElementById('pageTitle').textContent = titles[id] || id;
+  }
+
+  function showModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+  let toastTimer;
+  function toast(msg, type='') {
+    const el = document.getElementById('toastEl');
+    el.textContent = msg; el.className = 'toast ' + type;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  function exportCSV() { toast('Exporting CSV…', 'success'); }
+
+  function copyLink() {
+    const box = document.getElementById('linkBox');
+    box.style.display = 'block';
+    navigator.clipboard?.writeText(box.textContent).then(() => toast('Link copied!','success'));
+  }
+
+  function confirmDelete() {
+    if (document.getElementById('deleteConfirm').value === 'DELETE') {
+      closeModal('deleteModal');
+      toast('All logs cleared.', 'success');
+    } else {
+      toast('Type DELETE to confirm');
+    }
+  }
+
+  function filterLogs(q) {
+    const rows = document.querySelectorAll('#logsBody tr');
+    rows.forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none'; });
+  }
+</script>
+</body>
+</html>

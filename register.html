@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Organisation — FRaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07090f; --surface: #0e1220; --surface-2: #161b2e;
+      --border: rgba(255,255,255,0.07); --border-focus: rgba(79,142,247,0.5);
+      --accent: #4f8ef7; --accent-2: #7c5af0; --accent-glow: rgba(79,142,247,0.15);
+      --text: #f0f4ff; --muted: #8a93b0; --success: #22d3a5;
+      --danger: #ef4444; --radius: 12px; --radius-sm: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      background: linear-gradient(160deg, rgba(79,142,247,0.08) 0%, rgba(124,90,240,0.06) 100%);
+      border-right: 1px solid var(--border);
+      padding: 60px 48px; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow: hidden;
+    }
+    .left-panel .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 17px; }
+    .logo span { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+
+    .panel-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .panel-content h2 { font-size: 2rem; font-weight: 800; line-height: 1.15; letter-spacing: -.02em; margin-bottom: 14px; }
+    .panel-content h2 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .panel-content p { color: var(--muted); font-size: 0.95rem; line-height: 1.7; max-width: 340px; margin-bottom: 40px; }
+
+    .trust-items { display: flex; flex-direction: column; gap: 18px; }
+    .trust-item { display: flex; align-items: flex-start; gap: 14px; }
+    .trust-icon { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .trust-item h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 2px; }
+    .trust-item p { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+    .panel-testimonial { margin-top: 48px; padding: 20px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius); }
+    .panel-testimonial p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; font-style: italic; }
+    .panel-testimonial .author { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+    .author-name { font-size: 0.82rem; font-weight: 600; }
+    .author-role { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel { padding: 60px 56px; overflow-y: auto; display: flex; flex-direction: column; }
+    .right-panel .top-row { display: flex; justify-content: flex-end; margin-bottom: 60px; }
+    .right-panel .top-row span { font-size: 0.88rem; color: var(--muted); }
+    .right-panel .top-row a { color: var(--accent); text-decoration: none; font-weight: 600; margin-left: 6px; }
+
+    .form-header { margin-bottom: 36px; }
+    .form-header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+    .form-header p { color: var(--muted); font-size: 0.9rem; }
+
+    /* Steps indicator */
+    .steps-bar { display: flex; align-items: center; gap: 0; margin-bottom: 40px; }
+    .step-dot { display: flex; align-items: center; gap: 10px; }
+    .dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+    .dot.done { background: var(--success); color: #000; }
+    .dot.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+    .dot.pending { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .step-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .step-label.active { color: var(--text); }
+    .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 12px; }
+    .step-line.done { background: var(--success); }
+
+    /* Form */
+    form { display: flex; flex-direction: column; gap: 20px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    label { font-size: 0.82rem; font-weight: 600; color: var(--text); letter-spacing: .01em; }
+    .label-hint { color: var(--muted); font-weight: 400; }
+    input, select, textarea {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 11px 14px;
+      color: var(--text); font-size: 0.9rem; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s, box-shadow .2s; width: 100%;
+    }
+    input:focus, select:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input::placeholder, select option:first-child { color: var(--muted); }
+    select option { background: var(--surface-2); }
+    .field-icon-wrap { position: relative; }
+    .field-icon-wrap input { padding-left: 40px; }
+    .field-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.95rem; }
+
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .toggle-pw { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.9rem; }
+
+    .strength-bar { display: flex; gap: 4px; margin-top: 6px; }
+    .strength-seg { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background .3s; }
+
+    /* ── Subdomain field ── */
+    .subdomain-wrap {
+      display: flex; align-items: stretch;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .subdomain-wrap:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .subdomain-wrap.is-available { border-color: rgba(34,211,165,0.5); box-shadow: 0 0 0 3px rgba(34,211,165,0.1); }
+    .subdomain-wrap.is-taken    { border-color: rgba(239,68,68,0.5);  box-shadow: 0 0 0 3px rgba(239,68,68,0.08); }
+    .subdomain-wrap.is-invalid  { border-color: rgba(245,158,11,0.5); box-shadow: 0 0 0 3px rgba(245,158,11,0.08); }
+    .subdomain-wrap input {
+      flex: 1; border: none; outline: none; background: transparent;
+      padding: 11px 0 11px 14px; color: var(--text);
+      font-size: 0.9rem; font-family: 'Inter', sans-serif;
+      min-width: 0; /* prevent overflow */
+    }
+    .subdomain-suffix {
+      display: flex; align-items: center; padding: 0 12px 0 4px;
+      font-size: 0.88rem; font-weight: 600; color: var(--muted);
+      white-space: nowrap; flex-shrink: 0;
+      border-left: 1px solid var(--border); background: rgba(255,255,255,0.03);
+    }
+    .subdomain-status {
+      display: flex; align-items: center; padding: 0 12px;
+      font-size: 1rem; flex-shrink: 0; min-width: 36px; justify-content: center;
+    }
+    .subdomain-hint {
+      margin-top: 6px; font-size: 0.78rem;
+      transition: color .2s;
+    }
+    .subdomain-hint.ok    { color: var(--success); }
+    .subdomain-hint.taken { color: var(--danger); }
+    .subdomain-hint.bad   { color: var(--warn); }
+    .subdomain-hint.idle  { color: var(--muted); }
+    .subdomain-hint.checking { color: var(--muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin-icon { display: inline-block; animation: spin .7s linear infinite; }
+
+    .plan-select-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .plan-option { cursor: pointer; }
+    .plan-option input { display: none; }
+    .plan-card {
+      padding: 14px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      text-align: center; transition: all .2s;
+    }
+    .plan-option input:checked + .plan-card { border-color: var(--accent); background: var(--accent-glow); }
+    .plan-card .p-name { font-size: 0.82rem; font-weight: 700; margin-bottom: 3px; }
+    .plan-card .p-price { font-size: 0.75rem; color: var(--muted); }
+
+    .terms-row { display: flex; align-items: flex-start; gap: 10px; }
+    .terms-row input[type="checkbox"] { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+    .terms-row label { font-size: 0.85rem; color: var(--muted); line-height: 1.5; cursor: pointer; }
+    .terms-row a { color: var(--accent); text-decoration: none; }
+
+    .submit-btn {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none; border-radius: var(--radius-sm); color: #fff; font-size: 1rem;
+      font-weight: 700; cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+      box-shadow: 0 0 20px rgba(79,142,247,0.3);
+    }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 24px rgba(79,142,247,0.45); }
+    .submit-btn:active { transform: translateY(0); }
+
+    .divider-or { display: flex; align-items: center; gap: 14px; }
+    .divider-or::before, .divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .divider-or span { color: var(--muted); font-size: 0.8rem; }
+
+    .section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; padding: 6px 0 0; }
+
+    @media (max-width: 900px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 40px 28px; }
+    }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } .plan-select-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- LEFT -->
+<div class="left-panel">
+  <a class="logo" href="landing.html">
+    <div class="logo-icon">👁</div>
+    <span>FRaaS</span>
+  </a>
+  <div class="panel-content">
+    <h2>Your team, <em>recognised</em> in an instant</h2>
+    <p>Join organisations using FRaaS to replace badge swipes and paper registers with sub-second face recognition.</p>
+    <div class="trust-items">
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(34,211,165,0.12);">✓</div>
+        <div><h4>Free forever plan</h4><p>Start with 20 employees at zero cost. No card needed.</p></div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(79,142,247,0.12);">🔐</div>
+        <div><h4>Data stays yours</h4><p>Face embeddings are stored only for your organisation. Delete anytime.</p></div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(124,90,240,0.12);">⚡</div>
+        <div><h4>Ready in minutes</h4><p>API key provisioned instantly. Kiosk live in under 5 minutes.</p></div>
+      </div>
+    </div>
+    <div class="panel-testimonial">
+      <p>"We ditched the biometric machine and just set up FRaaS on a spare tablet. Works flawlessly every morning."</p>
+      <div class="author">
+        <div class="avatar">TK</div>
+        <div>
+          <div class="author-name">Tunde Kehinde</div>
+          <div class="author-role">HR Manager · Lagos Fintech Co.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right-panel">
+  <div class="top-row">
+    <span>Already have an account?<a href="dashboard.html">Sign in</a></span>
+  </div>
+
+  <div class="form-header">
+    <h1>Create your organisation</h1>
+    <p>Set up in under 2 minutes.</p>
+  </div>
+
+  <!-- Steps bar -->
+  <div class="steps-bar">
+    <div class="step-dot">
+      <div class="dot active">1</div>
+      <span class="step-label active">Account</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot">
+      <div class="dot pending">2</div>
+      <span class="step-label">Organisation</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot">
+      <div class="dot pending">3</div>
+      <span class="step-label">Plan</span>
+    </div>
+  </div>
+
+  <form id="regForm" onsubmit="handleSubmit(event)">
+
+    <div class="section-label">Your details</div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>First name</label>
+        <input type="text" placeholder="Olajide" required />
+      </div>
+      <div class="field">
+        <label>Last name</label>
+        <input type="text" placeholder="Fagbuji" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Work email</label>
+      <div class="field-icon-wrap">
+        <span class="field-icon">✉</span>
+        <input type="email" placeholder="you@company.com" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password <span class="label-hint">(min. 8 characters)</span></label>
+      <div class="password-wrap">
+        <input type="password" id="pwInput" placeholder="Create a strong password" oninput="checkStrength(this.value)" required />
+        <button type="button" class="toggle-pw" onclick="togglePw()">👁</button>
+      </div>
+      <div class="strength-bar">
+        <div class="strength-seg" id="s1"></div>
+        <div class="strength-seg" id="s2"></div>
+        <div class="strength-seg" id="s3"></div>
+        <div class="strength-seg" id="s4"></div>
+      </div>
+    </div>
+
+    <div class="divider-or"><span>Organisation info</span></div>
+
+    <div class="field">
+      <label>Organisation name</label>
+      <input type="text" id="orgNameInput" placeholder="Acme Technologies Ltd" required oninput="onOrgName(this.value)" />
+    </div>
+
+    <div class="field">
+      <label>Your subdomain <span class="label-hint">(auto-suggested · editable)</span></label>
+      <div class="subdomain-wrap" id="subdomainWrap">
+        <input
+          type="text"
+          id="subdomainInput"
+          placeholder="acme-technologies"
+          maxlength="63"
+          oninput="onSubdomainInput(this.value)"
+          autocomplete="off"
+          spellcheck="false"
+          required
+        />
+        <span class="subdomain-suffix">.xl21.org</span>
+        <span class="subdomain-status" id="subdomainStatus"></span>
+      </div>
+      <div class="subdomain-hint" id="subdomainHint">Choose a subdomain for your organisation's FRaaS workspace.</div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label>Industry</label>
+        <select>
+          <option value="" disabled selected>Select industry</option>
+          <option>Finance & Banking</option>
+          <option>Technology</option>
+          <option>Healthcare</option>
+          <option>Education</option>
+          <option>Manufacturing</option>
+          <option>Retail</option>
+          <option>Government</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Team size</label>
+        <select>
+          <option value="" disabled selected>How many employees?</option>
+          <option>1 – 20</option>
+          <option>21 – 50</option>
+          <option>51 – 200</option>
+          <option>201 – 500</option>
+          <option>500+</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider-or"><span>Choose a plan</span></div>
+
+    <div class="plan-select-grid">
+      <label class="plan-option">
+        <input type="radio" name="plan" value="free" checked />
+        <div class="plan-card">
+          <div class="p-name">Free</div>
+          <div class="p-price">₦0 / mo</div>
+        </div>
+      </label>
+      <label class="plan-option">
+        <input type="radio" name="plan" value="pro" />
+        <div class="plan-card">
+          <div class="p-name">Pro</div>
+          <div class="p-price">₦15k / mo</div>
+        </div>
+      </label>
+      <label class="plan-option">
+        <input type="radio" name="plan" value="enterprise" />
+        <div class="plan-card">
+          <div class="p-name">Enterprise</div>
+          <div class="p-price">Custom</div>
+        </div>
+      </label>
+    </div>
+
+    <div class="terms-row">
+      <input type="checkbox" id="terms" required />
+      <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. I understand that face embeddings are stored securely and can be deleted at any time.</label>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Create organisation →</button>
+
+  </form>
+
+  <!-- Success state (hidden) -->
+  <div id="successState" style="display:none;text-align:center;padding:48px 0;">
+    <div style="font-size:3rem;margin-bottom:16px;">🎉</div>
+    <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:8px;">Organisation created!</h2>
+    <p style="color:var(--muted);margin-bottom:24px;">Your workspace is live and your API key has been provisioned.</p>
+    <div style="background:rgba(34,211,165,0.07);border:1px solid rgba(34,211,165,0.25);border-radius:var(--radius);padding:14px 20px;font-size:0.9rem;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:10px;">
+      <span style="color:var(--success);font-size:1rem;">🌐</span>
+      <span style="font-family:monospace;color:var(--success);font-weight:700;" id="subdomainDisplay"></span>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;font-family:monospace;font-size:0.85rem;color:var(--accent);word-break:break-all;" id="apiKeyDisplay"></div>
+    <p style="color:var(--muted);font-size:0.8rem;margin-top:10px;">Copy your API key — it won't be shown again.</p>
+    <a href="dashboard.html" style="display:inline-block;margin-top:24px;text-decoration:none;" class="submit-btn">Go to dashboard →</a>
+  </div>
+</div>
+
+<script>
+  /* ── Subdomain logic ── */
+  const TAKEN = new Set(['acme', 'acme-technologies', 'test', 'demo', 'admin', 'api', 'app', 'dev', 'staging', 'support', 'mail', 'www', 'facesync', 'xl21']);
+  const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{1,61}[a-z0-9])?$/; // RFC-valid label, min 3 chars
+  let subdomainTimer = null;
+  let manuallyEdited = false; // user has hand-edited the slug
+
+  function slugify(str) {
+    return str
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')  // non-alphanum → hyphen
+      .replace(/^-+|-+$/g, '')       // trim leading/trailing hyphens
+      .slice(0, 63);
+  }
+
+  function onOrgName(val) {
+    if (!manuallyEdited) {
+      const slug = slugify(val);
+      document.getElementById('subdomainInput').value = slug;
+      validateSubdomain(slug);
+    }
+  }
+
+  function onSubdomainInput(val) {
+    manuallyEdited = val !== slugify(document.getElementById('orgNameInput').value);
+    validateSubdomain(val);
+  }
+
+  function validateSubdomain(val) {
+    const wrap   = document.getElementById('subdomainWrap');
+    const status = document.getElementById('subdomainStatus');
+    const hint   = document.getElementById('subdomainHint');
+    clearTimeout(subdomainTimer);
+
+    // Empty
+    if (!val) {
+      wrap.className   = 'subdomain-wrap';
+      status.textContent = '';
+      hint.className   = 'subdomain-hint idle';
+      hint.textContent = 'Choose a subdomain for your organisation's FRaaS workspace.';
+      return;
+    }
+
+    // Invalid characters / format
+    if (!DOMAIN_RE.test(val)) {
+      wrap.className   = 'subdomain-wrap is-invalid';
+      status.textContent = '⚠';
+      hint.className   = 'subdomain-hint bad';
+      if (val.length < 3)          hint.textContent = 'Too short — minimum 3 characters.';
+      else if (/[^a-z0-9-]/.test(val)) hint.textContent = 'Only lowercase letters, numbers, and hyphens are allowed.';
+      else if (/^-|-$/.test(val))  hint.textContent = 'Cannot start or end with a hyphen.';
+      else                          hint.textContent = 'Invalid subdomain format.';
+      return;
+    }
+
+    // Checking state (debounced)
+    wrap.className     = 'subdomain-wrap';
+    status.innerHTML   = '<span class="spin-icon">⟳</span>';
+    hint.className     = 'subdomain-hint checking';
+    hint.textContent   = `Checking availability of ${val}.xl21.org…`;
+
+    subdomainTimer = setTimeout(() => {
+      if (TAKEN.has(val)) {
+        wrap.className   = 'subdomain-wrap is-taken';
+        status.textContent = '✕';
+        hint.className   = 'subdomain-hint taken';
+        hint.textContent = `${val}.xl21.org is already taken. Try a variation.`;
+      } else {
+        wrap.className   = 'subdomain-wrap is-available';
+        status.textContent = '✓';
+        hint.className   = 'subdomain-hint ok';
+        hint.textContent = `✓ ${val}.xl21.org is available!`;
+      }
+    }, 600);
+  }
+
+  function togglePw() {
+    const el = document.getElementById('pwInput');
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  function checkStrength(val) {
+    const segs = [document.getElementById('s1'),document.getElementById('s2'),document.getElementById('s3'),document.getElementById('s4')];
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const colors = ['#ef4444','#f59e0b','#4f8ef7','#22d3a5'];
+    segs.forEach((s,i) => { s.style.background = i < score ? colors[Math.min(score-1,3)] : 'var(--border)'; });
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    // Block if subdomain is invalid or taken
+    const wrap = document.getElementById('subdomainWrap');
+    const slug = document.getElementById('subdomainInput').value.trim();
+    if (!DOMAIN_RE.test(slug)) {
+      document.getElementById('subdomainInput').focus();
+      return;
+    }
+    if (TAKEN.has(slug) || wrap.classList.contains('is-taken') || wrap.classList.contains('is-invalid')) {
+      document.getElementById('subdomainInput').focus();
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Creating organisation…';
+    btn.disabled = true;
+    setTimeout(() => {
+      document.getElementById('regForm').style.display = 'none';
+      const fakeKey = 'sk_' + Math.random().toString(36).slice(2,14) + Math.random().toString(36).slice(2,14);
+      document.getElementById('apiKeyDisplay').textContent = fakeKey;
+      // Show the assigned subdomain in success state
+      document.getElementById('subdomainDisplay').textContent = slug + '.xl21.org';
+      document.getElementById('successState').style.display = 'block';
+    }, 1400);
+  }
+</script>
+</body>
+</html>

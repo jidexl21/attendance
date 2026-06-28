@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Attendance Kiosk — FRaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07090f; --surface: #0e1220; --surface-2: #161b2e;
+      --border: rgba(255,255,255,0.07);
+      --accent: #4f8ef7; --accent-2: #7c5af0;
+      --text: #f0f4ff; --muted: #8a93b0;
+      --success: #22d3a5; --danger: #ef4444; --warn: #f59e0b;
+      --radius: 16px; --radius-sm: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; position: relative; overflow: hidden; user-select: none;
+    }
+
+    /* Background */
+    .bg-glow {
+      position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 0%, rgba(79,142,247,0.08) 0%, transparent 70%),
+                  radial-gradient(ellipse 40% 40% at 90% 90%, rgba(124,90,240,0.06) 0%, transparent 60%);
+    }
+    .bg-scan {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(79,142,247,0.6), transparent);
+      animation: scanLine 4s ease-in-out infinite;
+      z-index: 1; pointer-events: none;
+    }
+    @keyframes scanLine {
+      0%   { top: -2px; opacity: 0; }
+      5%   { opacity: 1; }
+      95%  { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* Layout */
+    .kiosk-wrap { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 700px; padding: 0 24px; }
+
+    /* Header */
+    .kiosk-header { text-align: center; margin-bottom: 32px; }
+    .logo-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+    .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-text { font-weight: 800; font-size: 1.15rem; }
+    .kiosk-org { font-size: 0.82rem; color: var(--muted); }
+    .kiosk-time { font-size: 3.5rem; font-weight: 900; letter-spacing: -.04em; line-height: 1; margin-bottom: 4px; }
+    .kiosk-date { font-size: 1rem; color: var(--muted); font-weight: 500; }
+
+    /* Camera frame */
+    .camera-outer { position: relative; margin-bottom: 28px; }
+    .camera-frame {
+      width: 340px; height: 340px; border-radius: 50%;
+      overflow: hidden; position: relative;
+      border: 2px solid var(--border);
+      box-shadow: 0 0 60px rgba(79,142,247,0.12), 0 0 0 1px rgba(79,142,247,0.08);
+    }
+    .camera-frame video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .camera-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .camera-placeholder {
+      width: 100%; height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: var(--surface);
+      gap: 12px;
+    }
+    .camera-placeholder .cam-icon { font-size: 3rem; opacity: .4; }
+    .camera-placeholder p { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 0 20px; }
+
+    /* Corners */
+    .corner { position: absolute; width: 32px; height: 32px; }
+    .corner.tl { top: -2px; left: -2px; border-top: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 6px 0 0 0; }
+    .corner.tr { top: -2px; right: -2px; border-top: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 6px 0 0; }
+    .corner.bl { bottom: -2px; left: -2px; border-bottom: 3px solid var(--accent); border-left: 3px solid var(--accent); border-radius: 0 0 0 6px; }
+    .corner.br { bottom: -2px; right: -2px; border-bottom: 3px solid var(--accent); border-right: 3px solid var(--accent); border-radius: 0 0 6px 0; }
+
+    /* Ring animation */
+    .ring {
+      position: absolute; top: 50%; left: 50%; border-radius: 50%;
+      transform: translate(-50%,-50%);
+      border: 1.5px solid rgba(79,142,247,0.2);
+      animation: ripple 3s linear infinite;
+    }
+    .ring:nth-child(2) { animation-delay: 1s; }
+    .ring:nth-child(3) { animation-delay: 2s; }
+    @keyframes ripple {
+      0%   { width: 340px; height: 340px; opacity: .6; }
+      100% { width: 480px; height: 480px; opacity: 0; }
+    }
+
+    /* Status */
+    .status-bar { height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 24px; border-radius: 99px; font-size: 1rem; font-weight: 700;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      transition: all .4s ease;
+    }
+    .status-pill.scanning { border-color: rgba(79,142,247,0.4); color: var(--accent); background: rgba(79,142,247,0.07); }
+    .status-pill.found { border-color: rgba(34,211,165,0.5); color: var(--success); background: rgba(34,211,165,0.08); animation: pop .3s ease; }
+    .status-pill.error { border-color: rgba(239,68,68,0.5); color: var(--danger); background: rgba(239,68,68,0.08); }
+    .status-pill.warn { border-color: rgba(245,158,11,0.5); color: var(--warn); background: rgba(245,158,11,0.08); }
+    @keyframes pop { 0%{transform:scale(.94)} 60%{transform:scale(1.04)} 100%{transform:scale(1)} }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: blink 1.4s infinite; }
+    .status-pill.found .status-dot, .status-pill.error .status-dot { animation: none; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Result card */
+    .result-card {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px; min-height: 90px;
+      display: flex; align-items: center; gap: 18px; transition: all .3s;
+    }
+    .result-card.success { border-color: rgba(34,211,165,0.3); background: rgba(34,211,165,0.05); }
+    .result-card.fail { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.04); }
+    .result-card.empty { justify-content: center; }
+    .result-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; flex-shrink: 0; }
+    .result-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+    .result-meta { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    .result-badge { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status-tag { padding: 4px 14px; border-radius: 99px; font-size: 0.85rem; font-weight: 800; letter-spacing: .02em; }
+    .status-tag.IN { background: rgba(34,211,165,0.15); color: var(--success); }
+    .status-tag.OUT { background: rgba(239,68,68,0.12); color: var(--danger); }
+    .result-time { font-size: 0.78rem; color: var(--muted); }
+    .empty-msg { font-size: 0.9rem; color: var(--muted); }
+
+    /* Footer */
+    .kiosk-footer { margin-top: 24px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center; }
+    .footer-btn { display: flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all .15s; font-family: 'Inter',sans-serif; }
+    .footer-btn:hover { background: var(--surface); color: var(--text); }
+    .footer-btn.active-cam { border-color: rgba(79,142,247,0.4); color: var(--accent); }
+
+    /* Settings panel */
+    .settings-panel {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .settings-panel.open { display: flex; }
+    .settings-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; width: 100%; max-width: 400px; }
+    .settings-box h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; }
+    .s-field { margin-bottom: 16px; }
+    .s-field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 7px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .s-field input { width: 100%; padding: 10px 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.9rem; font-family: 'Inter',sans-serif; outline: none; }
+    .s-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-s { padding: 10px 20px; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 700; cursor: pointer; border: none; font-family: 'Inter',sans-serif; }
+    .btn-s-p { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+    .btn-s-g { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+
+    /* Log strip */
+    .log-strip { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px 0; z-index: 10; }
+    .log-strip h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; padding: 0 16px; margin-bottom: 12px; }
+    .log-entry { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid var(--border); }
+    .log-av { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+    .log-info .ln { font-size: 0.78rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
+    .log-info .lt { font-size: 0.7rem; color: var(--muted); }
+    .log-s { margin-left: auto; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .log-s.in { background: rgba(34,211,165,0.12); color: var(--success); }
+    .log-s.out { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+    @media (max-width: 600px) {
+      .log-strip { display: none; }
+      .camera-frame { width: 280px; height: 280px; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="bg-scan"></div>
+
+<!-- Recent log strip -->
+<div class="log-strip">
+  <h3>Recent</h3>
+  <div id="logStrip">
+    <div class="log-entry"><div class="log-av">TK</div><div class="log-info"><div class="ln">Tunde K.</div><div class="lt">13:10</div></div><span class="log-s out">OUT</span></div>
+    <div class="log-entry"><div class="log-av">AA</div><div class="log-info"><div class="ln">Amaka A.</div><div class="lt">09:01</div></div><span class="log-s in">IN</span></div>
+    <div class="log-entry"><div class="log-av">OF</div><div class="log-info"><div class="ln">Olajide F.</div><div class="lt">08:42</div></div><span class="log-s in">IN</span></div>
+    <div class="log-entry"><div class="log-av">BI</div><div class="log-info"><div class="ln">Bello I.</div><div class="lt">09:22</div></div><span class="log-s in">IN</span></div>
+    <div class="log-entry"><div class="log-av">CO</div><div class="log-info"><div class="ln">Chidi O.</div><div class="lt">07:58</div></div><span class="log-s in">IN</span></div>
+  </div>
+</div>
+
+<!-- Main kiosk -->
+<div class="kiosk-wrap" style="margin-left:220px;">
+  <div class="kiosk-header">
+    <div class="logo-row">
+      <div class="logo-icon">👁</div>
+      <span class="logo-text">FRaaS</span>
+    </div>
+    <div class="kiosk-time" id="clock">--:--</div>
+    <div class="kiosk-date" id="dateStr">Loading…</div>
+  </div>
+
+  <!-- Camera -->
+  <div class="camera-outer">
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+
+    <div class="camera-frame" id="cameraFrame">
+      <div class="camera-placeholder" id="placeholder">
+        <div class="cam-icon">📷</div>
+        <p>Camera not started.<br>Tap "Start Camera" below.</p>
+      </div>
+      <video id="videoEl" autoplay playsinline style="display:none;"></video>
+    </div>
+
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="status-pill scanning" id="statusPill">
+      <div class="status-dot"></div>
+      <span id="statusText">Waiting for face…</span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card empty" id="resultCard">
+    <span class="empty-msg">Stand in front of the camera to clock in or out</span>
+  </div>
+
+  <!-- Footer buttons -->
+  <div class="kiosk-footer">
+    <button class="footer-btn" id="startBtn" onclick="startCamera()">📷 Start Camera</button>
+    <button class="footer-btn" id="camFlipBtn" onclick="flipCamera()" style="display:none;">🔄 Flip Camera</button>
+    <button class="footer-btn" onclick="simulateScan()">⚡ Demo Scan</button>
+    <button class="footer-btn" onclick="document.getElementById('settingsPanel').classList.add('open')">⚙ Settings</button>
+  </div>
+</div>
+
+<!-- Settings panel -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-box">
+    <h2>⚙ Kiosk Settings</h2>
+    <div class="s-field">
+      <label>API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="sk_••••••••••••••••••••" value="sk_demo_key_abc123" />
+    </div>
+    <div class="s-field">
+      <label>API Base URL</label>
+      <input type="url" id="apiUrlInput" placeholder="http://localhost:5000" value="http://localhost:5000" />
+    </div>
+    <div class="s-field">
+      <label>Organisation</label>
+      <input type="text" placeholder="Acme Technologies" value="Acme Technologies" />
+    </div>
+    <div class="s-field">
+      <label>Scan interval (seconds)</label>
+      <input type="number" value="4" min="2" max="30" />
+    </div>
+    <div class="s-actions">
+      <button class="btn-s btn-s-g" onclick="document.getElementById('settingsPanel').classList.remove('open')">Cancel</button>
+      <button class="btn-s btn-s-p" onclick="saveSettings()">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Clock ── */
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('clock').textContent = h + ':' + m;
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('dateStr').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  }
+  updateClock(); setInterval(updateClock, 10000);
+
+  /* ── Camera ── */
+  let stream = null; let facingMode = 'user';
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+      const vid = document.getElementById('videoEl');
+      vid.srcObject = stream; vid.style.display = 'block';
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('camFlipBtn').style.display = 'flex';
+      setStatus('scanning', '● Scanning…');
+      scanLoop();
+    } catch(e) {
+      setStatus('error', '✕ Camera access denied');
+    }
+  }
+
+  function flipCamera() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    if (stream) { stream.getTracks().forEach(t => t.stop()); startCamera(); }
+  }
+
+  /* ── Scan loop (demo) ── */
+  let scanTimer = null; let cooldowns = {};
+  function scanLoop() {
+    scanTimer = setInterval(() => {
+      if (Math.random() < 0.3) simulateScan();
+    }, 4000);
+  }
+
+  const demoUsers = [
+    { name: 'Olajide Fagbuji', initials: 'OF' },
+    { name: 'Tunde Kehinde', initials: 'TK' },
+    { name: 'Amaka Adeyemi', initials: 'AA' },
+    { name: 'Bello Ibrahim', initials: 'BI' },
+  ];
+  const statusMap = {};
+
+  function simulateScan() {
+    const user = demoUsers[Math.floor(Math.random() * demoUsers.length)];
+    const now = new Date();
+    const nowKey = user.name;
+
+    if (cooldowns[nowKey] && now - cooldowns[nowKey] < 8000) {
+      setStatus('warn', '⏳ Cooldown active — please wait');
+      setTimeout(() => setStatus('scanning','● Scanning…'), 2200);
+      return;
+    }
+
+    setStatus('found', '✓ Face recognised');
+
+    // Toggle IN/OUT
+    const prev = statusMap[user.name] || 'OUT';
+    const next = prev === 'OUT' ? 'IN' : 'OUT';
+    statusMap[user.name] = next;
+    cooldowns[nowKey] = now;
+
+    const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+
+    showResult(user, next, timeStr);
+    addToLog(user, next, timeStr);
+
+    setTimeout(() => {
+      setStatus('scanning','● Scanning…');
+      clearResult();
+    }, 4500);
+  }
+
+  function setStatus(type, text) {
+    const pill = document.getElementById('statusPill');
+    pill.className = 'status-pill ' + type;
+    document.getElementById('statusText').textContent = text;
+  }
+
+  function showResult(user, status, time) {
+    const card = document.getElementById('resultCard');
+    card.className = 'result-card ' + (status === 'IN' ? 'success' : 'fail');
+    card.innerHTML = `
+      <div class="result-avatar">${user.initials}</div>
+      <div>
+        <div class="result-name">${user.name}</div>
+        <div class="result-meta">Face match · Liveness verified</div>
+      </div>
+      <div class="result-badge">
+        <span class="status-tag ${status}">${status === 'IN' ? '↑ CLOCKED IN' : '↓ CLOCKED OUT'}</span>
+        <span class="result-time">${time}</span>
+      </div>
+    `;
+  }
+
+  function clearResult() {
+    const card = document.getElementById('resultCard');
+    card.className = 'result-card empty';
+    card.innerHTML = '<span class="empty-msg">Stand in front of the camera to clock in or out</span>';
+  }
+
+  function addToLog(user, status, time) {
+    const strip = document.getElementById('logStrip');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.style.animation = 'slideIn .3s ease';
+    entry.innerHTML = `
+      <div class="log-av">${user.initials}</div>
+      <div class="log-info">
+        <div class="ln">${user.name.split(' ')[0]} ${user.name.split(' ')[1]?.[0]}.</div>
+        <div class="lt">${time.slice(0,5)}</div>
+      </div>
+      <span class="log-s ${status.toLowerCase()}">${status}</span>
+    `;
+    strip.insertBefore(entry, strip.firstChild);
+    // Keep max 10 entries
+    while (strip.children.length > 10) strip.removeChild(strip.lastChild);
+  }
+
+  function saveSettings() {
+    document.getElementById('settingsPanel').classList.remove('open');
+    setStatus('scanning','● Scanning…');
+  }
+
+  /* Auto-start in demo mode */
+  window.addEventListener('load', () => {
+    setStatus('scanning','● Ready · Demo mode');
+  });
+</script>
+</body>
+</html>

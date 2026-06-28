@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — FRaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07090f; --surface: #0e1220; --surface-2: #161b2e; --surface-3: #1c2235;
+      --border: rgba(255,255,255,0.07); --border-hover: rgba(255,255,255,0.12);
+      --accent: #4f8ef7; --accent-2: #7c5af0; --accent-glow: rgba(79,142,247,0.15);
+      --text: #f0f4ff; --muted: #8a93b0; --success: #22d3a5; --warn: #f59e0b;
+      --danger: #ef4444; --radius: 12px; --radius-sm: 8px;
+      --sidebar-w: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+    /* Sidebar (same as dashboard) */
+    .sidebar { width: var(--sidebar-w); min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; left:0; top:0; bottom:0; z-index:50; }
+    .sidebar-logo { padding: 22px 20px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .logo-icon { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .logo-text { font-weight: 700; font-size: 1rem; }
+    .back-link { display: flex; align-items: center; gap: 8px; padding: 12px 16px; margin: 10px 8px; border-radius: var(--radius-sm); color: var(--muted); font-size: 0.85rem; text-decoration: none; transition: all .15s; }
+    .back-link:hover { background: var(--surface-2); color: var(--text); }
+    .nav-section { padding: 18px 0 8px; }
+    .nav-label { padding: 0 16px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; font-size: 0.87rem; font-weight: 500; color: var(--muted); transition: all .15s; margin: 1px 8px; border-radius: var(--radius-sm); border: 1px solid transparent; text-decoration: none; }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active { background: var(--accent-glow); color: var(--accent); border-color: rgba(79,142,247,0.2); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .sidebar-bottom { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); }
+    .user-row { display: flex; align-items: center; gap: 10px; }
+    .user-av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #22d3a5, #4f8ef7); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .user-info .name { font-size: 0.82rem; font-weight: 600; }
+    .user-info .role { font-size: 0.75rem; color: var(--muted); }
+
+    /* Main */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+    .topbar { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background: rgba(7,9,15,0.7); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 40; }
+    .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.84rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; border: none; font-family: 'Inter',sans-serif; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+    .btn-primary:hover { box-shadow: 0 2px 16px rgba(79,142,247,0.4); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border-hover); }
+    .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-warn { background: rgba(245,158,11,0.1); color: var(--warn); border: 1px solid rgba(245,158,11,0.2); }
+    .btn-success { background: rgba(34,211,165,0.1); color: var(--success); border: 1px solid rgba(34,211,165,0.2); }
+    .content { padding: 32px; flex: 1; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+    .card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h2 { font-size: 0.95rem; font-weight: 700; }
+    .card-body { padding: 22px; }
+    .section-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; margin-bottom: 6px; }
+    .section-sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 24px; line-height: 1.6; }
+
+    /* Form */
+    .form-field { margin-bottom: 18px; }
+    .form-field label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 7px; }
+    .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.88rem; font-family: 'Inter',sans-serif; outline: none; transition: border-color .2s, box-shadow .2s; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: rgba(79,142,247,0.4); box-shadow: 0 0 0 3px rgba(79,142,247,0.1); }
+    .form-field textarea { resize: vertical; min-height: 80px; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
+
+    /* Grid layouts */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* Webhook rows */
+    .webhook-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .webhook-row:last-child { border-bottom: none; }
+    .webhook-method { padding: 3px 9px; border-radius: 5px; font-size: 0.75rem; font-weight: 700; background: rgba(79,142,247,0.12); color: var(--accent); font-family: monospace; }
+    .webhook-url { font-family: monospace; font-size: 0.82rem; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .event-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; background: var(--surface-3); color: var(--muted); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .status-dot.inactive { background: var(--muted); }
+
+    /* Secret box */
+    .secret-box { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; }
+    .secret-val { font-family: monospace; font-size: 0.82rem; color: var(--accent); flex: 1; letter-spacing: .02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.85rem; padding: 4px 8px; border-radius: 4px; transition: all .15s; }
+    .copy-btn:hover { background: var(--surface-3); color: var(--text); }
+
+    /* Webhook report table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 10px 14px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--border); }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .badge.success { background: rgba(34,211,165,0.12); color: var(--success); }
+    .badge.fail { background: rgba(239,68,68,0.1); color: var(--danger); }
+    .badge.pending { background: rgba(245,158,11,0.1); color: var(--warn); }
+
+    /* Settings toggles */
+    .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); gap: 20px; }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 3px; }
+    .setting-info p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; background: var(--surface-3); border-radius: 99px; cursor: pointer; transition: background .2s; border: 1px solid var(--border); }
+    .toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+    .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .toggle input:checked + .toggle-track + .toggle-thumb { transform: translateX(18px); }
+
+    /* Embed box */
+    .embed-preview { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .embed-toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-3); }
+    .embed-toolbar .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .embed-code { padding: 16px; font-family: monospace; font-size: 0.8rem; color: var(--muted); line-height: 1.8; }
+    .embed-code .tag { color: var(--accent); }
+    .embed-code .attr { color: #22d3a5; }
+    .embed-code .val { color: var(--warn); }
+
+    /* Report */
+    .report-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .report-card { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; text-align: center; transition: all .2s; }
+    .report-card:hover, .report-card.selected { border-color: var(--accent); background: var(--accent-glow); }
+    .report-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
+    .report-card h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 4px; }
+    .report-card p { font-size: 0.78rem; color: var(--muted); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 28px; right: 28px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; font-size: 0.88rem; font-weight: 500; z-index: 300; transform: translateY(80px); opacity: 0; transition: all .3s; display: flex; align-items: center; gap: 10px; max-width: 320px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: rgba(34,211,165,0.3); color: var(--success); }
+    .toast.warn { border-color: rgba(245,158,11,0.3); color: var(--warn); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; animation: slideUp .2s ease; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+    .modal h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+    .modal p { color: var(--muted); font-size: 0.88rem; margin-bottom: 20px; line-height: 1.6; }
+    .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; margin-top: -4px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    @media (max-width:1100px) { .three-col { grid-template-columns: 1fr 1fr; } }
+    @media (max-width:768px) { .sidebar { transform: translateX(-100%); } .main { margin-left: 0; } .two-col,.three-col { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">👁</div>
+    <span class="logo-text">FRaaS</span>
+  </div>
+  <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
+
+  <div class="nav-section">
+    <div class="nav-label">Developer</div>
+    <a class="nav-item active" onclick="switchPanel('webhooks',this)"><span class="nav-icon">🔗</span> Webhooks</a>
+    <a class="nav-item" onclick="switchPanel('reports-wh',this)"><span class="nav-icon">📋</span> Webhook Reports</a>
+    <a class="nav-item" onclick="switchPanel('embed',this)"><span class="nav-icon">🖼</span> External Login / Embed</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Organisation</div>
+    <a class="nav-item" onclick="switchPanel('settings',this)"><span class="nav-icon">⚙️</span> Settings</a>
+    <a class="nav-item" onclick="switchPanel('reports',this)"><span class="nav-icon">📊</span> Report Generation</a>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="user-row">
+      <div class="user-av">OF</div>
+      <div class="user-info">
+        <div class="name">Olajide Fagbuji</div>
+        <div class="role">Owner · Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <h1 id="pageTitle">Webhooks</h1>
+    <div style="display:flex;gap:10px;">
+      <span style="font-size:0.8rem;color:var(--muted);align-self:center;">org_527df553</span>
+      <button class="btn btn-ghost" style="font-size:0.8rem;">📋 Copy org ID</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── WEBHOOKS ── -->
+    <div class="panel active" id="panel-webhooks">
+      <div class="section-title">Webhook Configuration</div>
+      <div class="section-sub">FRaaS sends a signed HTTP POST to your endpoint on every attendance event. Use webhook secrets to verify payloads.</div>
+
+      <div class="two-col" style="align-items:start;">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Endpoints</h2>
+              <button class="btn btn-primary" style="font-size:0.8rem;" onclick="showModal('addWebhookModal')">+ Add endpoint</button>
+            </div>
+            <div class="card-body" style="padding:0 22px;">
+              <div class="webhook-row">
+                <div class="status-dot active"></div>
+                <span class="webhook-method">POST</span>
+                <span class="webhook-url">https://hrms.acme.co/api/facesync/events</span>
+                <span class="event-tag">attendance.*</span>
+                <button class="btn btn-ghost" style="font-size:0.75rem;padding:4px 10px;" onclick="showModal('editWebhookModal')">Edit</button>
+              </div>
+              <div class="webhook-row">
+                <div class="status-dot active"></div>
+                <span class="webhook-method">POST</span>
+                <span class="webhook-url">https://slack-relay.acme.co/hooks/face</span>
+                <span class="event-tag">user.in</span>
+                <button class="btn btn-ghost" style="font-size:0.75rem;padding:4px 10px;" onclick="showModal('editWebhookModal')">Edit</button>
+              </div>
+              <div class="webhook-row">
+                <div class="status-dot inactive"></div>
+                <span class="webhook-method">POST</span>
+                <span class="webhook-url">https://test.requestbin.com/r/abc123</span>
+                <span class="event-tag">attendance.*</span>
+                <button class="btn btn-ghost" style="font-size:0.75rem;padding:4px 10px;" onclick="showModal('editWebhookModal')">Edit</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2>Webhook Secret</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px;">Use this secret to verify that webhook calls originated from FRaaS. Compare against the <code style="color:var(--accent);background:var(--surface-2);padding:1px 5px;border-radius:3px;">X-FRaaS-Signature</code> header.</p>
+              <div id="secretRevealed" style="display:none;">
+                <div class="secret-box" id="secretBox">
+                  <span class="secret-val" id="secretVal">whsec_k3y_••••••••••••••••••••••••••••</span>
+                  <button class="copy-btn" onclick="copySecret()" title="Copy">📋</button>
+                  <button class="copy-btn" onclick="hideSecret()" title="Hide">🙈</button>
+                </div>
+                <p class="hint" style="margin-top:8px;">⚠ This secret was shown once. Regenerating creates a new secret immediately.</p>
+              </div>
+              <div id="secretHidden" style="display:flex;gap:10px;">
+                <div class="secret-box" style="flex:1;"><span class="secret-val">whsec_••••••••••••••••••••••••••••••</span></div>
+                <button class="btn btn-warn" onclick="revealSecret()">Reveal</button>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:14px;">
+                <button class="btn btn-danger" onclick="regenerateSecret()">↺ Regenerate secret</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header"><h2>Event Types</h2></div>
+            <div class="card-body" style="padding:0 22px;">
+              <div class="webhook-row">
+                <div style="flex:1;">
+                  <div style="font-size:0.85rem;font-weight:600;font-family:monospace;color:var(--accent);margin-bottom:3px;">attendance.in</div>
+                  <div style="font-size:0.8rem;color:var(--muted);">Employee clocked IN</div>
+                </div>
+              </div>
+              <div class="webhook-row">
+                <div style="flex:1;">
+                  <div style="font-size:0.85rem;font-weight:600;font-family:monospace;color:var(--accent);margin-bottom:3px;">attendance.out</div>
+                  <div style="font-size:0.8rem;color:var(--muted);">Employee clocked OUT</div>
+                </div>
+              </div>
+              <div class="webhook-row">
+                <div style="flex:1;">
+                  <div style="font-size:0.85rem;font-weight:600;font-family:monospace;color:var(--accent);margin-bottom:3px;">user.registered</div>
+                  <div style="font-size:0.8rem;color:var(--muted);">New face enrolled</div>
+                </div>
+              </div>
+              <div class="webhook-row">
+                <div style="flex:1;">
+                  <div style="font-size:0.85rem;font-weight:600;font-family:monospace;color:var(--accent);margin-bottom:3px;">recognition.failed</div>
+                  <div style="font-size:0.8rem;color:var(--muted);">Face not recognised or spoof detected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2>Sample Payload</h2></div>
+            <div class="card-body" style="padding:14px 18px;">
+              <pre style="font-family:monospace;font-size:0.78rem;line-height:1.9;color:var(--muted);overflow-x:auto;"><span style="color:#7c5af0;">{</span>
+  <span style="color:#4f8ef7;">"event"</span>: <span style="color:#f59e0b;">"attendance.in"</span>,
+  <span style="color:#4f8ef7;">"org_id"</span>: <span style="color:#f59e0b;">"org_527df553"</span>,
+  <span style="color:#4f8ef7;">"name"</span>: <span style="color:#f59e0b;">"Olajide Fagbuji"</span>,
+  <span style="color:#4f8ef7;">"status"</span>: <span style="color:#22d3a5;">"IN"</span>,
+  <span style="color:#4f8ef7;">"time"</span>: <span style="color:#f59e0b;">"08:42:17"</span>,
+  <span style="color:#4f8ef7;">"date"</span>: <span style="color:#f59e0b;">"2026-06-21"</span>,
+  <span style="color:#4f8ef7;">"confidence"</span>: <span style="color:#22d3a5;">0.96</span>,
+  <span style="color:#4f8ef7;">"liveness"</span>: <span style="color:#22d3a5;">true</span>
+<span style="color:#7c5af0;">}</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WEBHOOK REPORTS ── -->
+    <div class="panel" id="panel-reports-wh">
+      <div class="section-title">Webhook Delivery Reports</div>
+      <div class="section-sub">Audit every webhook delivery attempt with response codes and payloads for debugging.</div>
+
+      <div class="three-col" style="margin-bottom:24px;">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-body" style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:var(--success);">248</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">Successful deliveries</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-body" style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:var(--danger);">3</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">Failed deliveries</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-body" style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;">99.2%</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">Success rate (7 days)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Delivery Log</h2>
+          <div style="display:flex;gap:10px;">
+            <select style="padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:0.82rem;font-family:'Inter',sans-serif;outline:none;">
+              <option>All endpoints</option>
+              <option>hrms.acme.co</option>
+              <option>slack-relay.acme.co</option>
+            </select>
+            <button class="btn btn-ghost" style="font-size:0.8rem;">Retry failed →</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Timestamp</th><th>Event</th><th>Endpoint</th><th>Status</th><th>Response</th><th>Duration</th><th></th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">2026-06-21 08:42:18</td><td><span style="font-family:monospace;font-size:0.78rem;color:var(--accent);">attendance.in</span></td><td style="font-size:0.82rem;color:var(--muted);">hrms.acme.co</td><td><span class="badge success">200 OK</span></td><td style="font-size:0.8rem;color:var(--muted);">{"received":true}</td><td style="font-size:0.8rem;color:var(--muted);">142ms</td><td><button class="btn btn-ghost" style="font-size:0.75rem;padding:3px 8px;">View</button></td></tr>
+              <tr><td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">2026-06-21 08:42:18</td><td><span style="font-family:monospace;font-size:0.78rem;color:var(--accent);">attendance.in</span></td><td style="font-size:0.82rem;color:var(--muted);">slack-relay.acme.co</td><td><span class="badge success">200 OK</span></td><td style="font-size:0.8rem;color:var(--muted);">{"ok":true}</td><td style="font-size:0.8rem;color:var(--muted);">89ms</td><td><button class="btn btn-ghost" style="font-size:0.75rem;padding:3px 8px;">View</button></td></tr>
+              <tr><td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">2026-06-20 17:31:04</td><td><span style="font-family:monospace;font-size:0.78rem;color:var(--accent);">attendance.out</span></td><td style="font-size:0.82rem;color:var(--muted);">hrms.acme.co</td><td><span class="badge fail">503</span></td><td style="font-size:0.8rem;color:var(--danger);">Service unavailable</td><td style="font-size:0.8rem;color:var(--muted);">5001ms</td><td><button class="btn btn-warn" style="font-size:0.75rem;padding:3px 8px;" onclick="toast('Retrying…','warn')">Retry</button></td></tr>
+              <tr><td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">2026-06-20 09:15:22</td><td><span style="font-family:monospace;font-size:0.78rem;color:var(--accent);">user.registered</span></td><td style="font-size:0.82rem;color:var(--muted);">hrms.acme.co</td><td><span class="badge success">201</span></td><td style="font-size:0.8rem;color:var(--muted);">{"id":"emp_9142"}</td><td style="font-size:0.8rem;color:var(--muted);">204ms</td><td><button class="btn btn-ghost" style="font-size:0.75rem;padding:3px 8px;">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="panel" id="panel-settings">
+      <div class="section-title">Organisation Settings</div>
+      <div class="section-sub">Configure attendance rules, data policies, and account credentials.</div>
+
+      <div class="two-col" style="align-items:start;">
+        <div>
+          <!-- Hours -->
+          <div class="card">
+            <div class="card-header"><h2>⏰ Operating Hours</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.85rem;margin-bottom:18px;">Attendance scans outside these hours will still be logged but flagged as out-of-hours.</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="form-field"><label>Opening Time</label><input type="time" value="08:00" /></div>
+                <div class="form-field"><label>Closing Time</label><input type="time" value="17:30" /></div>
+              </div>
+              <div class="form-field">
+                <label>Working Days</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;" id="daysRow">
+                  <button class="day-btn active" onclick="toggleDay(this)">Mon</button>
+                  <button class="day-btn active" onclick="toggleDay(this)">Tue</button>
+                  <button class="day-btn active" onclick="toggleDay(this)">Wed</button>
+                  <button class="day-btn active" onclick="toggleDay(this)">Thu</button>
+                  <button class="day-btn active" onclick="toggleDay(this)">Fri</button>
+                  <button class="day-btn" onclick="toggleDay(this)">Sat</button>
+                  <button class="day-btn" onclick="toggleDay(this)">Sun</button>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="toast('Hours saved','success')">Save hours</button>
+            </div>
+          </div>
+
+          <!-- Usage Type -->
+          <div class="card">
+            <div class="card-header"><h2>🔧 Usage Type</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.85rem;margin-bottom:18px;">Choose how face recognition events are interpreted and labelled.</p>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);" id="modeAttendance">
+                  <input type="radio" name="usageType" value="attendance" checked style="accent-color:var(--accent);margin-top:2px;flex-shrink:0;" onchange="setMode('attendance')" />
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:600;margin-bottom:2px;">Attendance Mode</div>
+                    <div style="font-size:0.78rem;color:var(--muted);">Each scan toggles IN / OUT. Best for tracking work hours.</div>
+                  </div>
+                </label>
+                <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);" id="modeLogin">
+                  <input type="radio" name="usageType" value="login" style="accent-color:var(--accent);margin-top:2px;flex-shrink:0;" onchange="setMode('login')" />
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:600;margin-bottom:2px;">Login / Access Mode</div>
+                    <div style="font-size:0.78rem;color:var(--muted);">Each scan logs a single access event. Best for door access or sign-in terminals.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Data Retention -->
+          <div class="card">
+            <div class="card-header"><h2>🗄 Data Retention</h2></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h4>Attendance log retention</h4>
+                  <p>Logs older than this are automatically deleted.</p>
+                </div>
+                <select style="padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;min-width:120px;">
+                  <option>30 days</option>
+                  <option selected>1 year</option>
+                  <option>3 years</option>
+                  <option>Forever</option>
+                </select>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h4>Auto-purge deleted users</h4>
+                  <p>Remove face embeddings for users deregistered over 30 days ago.</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" checked onchange="">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+              <div class="setting-row" style="border:none;padding-bottom:0;">
+                <div class="setting-info">
+                  <h4>Anonymise logs on export</h4>
+                  <p>Replace names with hashed IDs in CSV exports.</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+              <div style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="toast('Retention settings saved','success')">Save settings</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="card">
+            <div class="card-header"><h2>👤 Account</h2></div>
+            <div class="card-body">
+              <div class="form-field">
+                <label>Contact Email</label>
+                <input type="email" value="jidexl21@gmail.com" />
+              </div>
+              <div class="form-field">
+                <label>Current Password</label>
+                <input type="password" placeholder="Enter current password" />
+              </div>
+              <div class="form-field">
+                <label>New Password</label>
+                <input type="password" placeholder="New password" />
+              </div>
+              <div class="form-field">
+                <label>Confirm New Password</label>
+                <input type="password" placeholder="Confirm new password" />
+              </div>
+              <button class="btn btn-primary" onclick="toast('Account updated','success')">Update account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REPORTS ── -->
+    <div class="panel" id="panel-reports">
+      <div class="section-title">Report Generation</div>
+      <div class="section-sub">Generate attendance summaries, individual timesheets, or anomaly reports.</div>
+
+      <div class="report-types">
+        <div class="report-card selected" onclick="selectReport(this)">
+          <div class="icon">📅</div>
+          <h4>Daily Summary</h4>
+          <p>All IN/OUT events for a selected date</p>
+        </div>
+        <div class="report-card" onclick="selectReport(this)">
+          <div class="icon">📆</div>
+          <h4>Weekly Timesheet</h4>
+          <p>Hours worked per employee for the week</p>
+        </div>
+        <div class="report-card" onclick="selectReport(this)">
+          <div class="icon">🗓</div>
+          <h4>Monthly Summary</h4>
+          <p>Attendance overview across a full month</p>
+        </div>
+        <div class="report-card" onclick="selectReport(this)">
+          <div class="icon">⚠️</div>
+          <h4>Anomaly Report</h4>
+          <p>Late arrivals, early exits, missed punches</p>
+        </div>
+        <div class="report-card" onclick="selectReport(this)">
+          <div class="icon">👤</div>
+          <h4>Individual Record</h4>
+          <p>Full history for a specific employee</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>Report Options</h2></div>
+        <div class="card-body">
+          <div class="two-col">
+            <div>
+              <div class="form-field"><label>Date Range</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                  <input type="date" value="2026-06-01" />
+                  <input type="date" value="2026-06-21" />
+                </div>
+              </div>
+              <div class="form-field"><label>Employee <span style="font-weight:400;color:var(--muted);">(optional — leave blank for all)</span></label>
+                <select>
+                  <option value="">All employees</option>
+                  <option>Olajide Fagbuji</option>
+                  <option>Tunde Kehinde</option>
+                  <option>Amaka Adeyemi</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div class="form-field"><label>Output Format</label>
+                <select><option>PDF Report</option><option>CSV Spreadsheet</option><option>JSON</option></select>
+              </div>
+              <div class="form-field"><label>Delivery</label>
+                <select><option>Download now</option><option>Email to contact address</option></select>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button class="btn btn-primary" onclick="toast('Generating report…','success')">📊 Generate report</button>
+            <button class="btn btn-ghost" onclick="toast('Report scheduled for email')">✉ Schedule email report</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EMBED / EXTERNAL LOGIN ── -->
+    <div class="panel" id="panel-embed">
+      <div class="section-title">External Login & Embed</div>
+      <div class="section-sub">Share a link that opens an iframe-ready kiosk. Embed it in your intranet, LMS, or HR portal with a single tag.</div>
+
+      <div class="two-col" style="align-items:start;">
+        <div>
+          <div class="card">
+            <div class="card-header"><h2>Your Kiosk Link</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.85rem;margin-bottom:14px;">Anyone with this link can open a face-recognition kiosk for your organisation. The link is tied to your API key — regenerate if compromised.</p>
+              <div class="secret-box" style="margin-bottom:14px;">
+                <span class="secret-val" id="kioskUrl">https://app.facesync.io/kiosk/org_527df553</span>
+                <button class="copy-btn" onclick="copyToast('kioskUrl')" title="Copy URL">📋</button>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <a href="kiosk.html" target="_blank" class="btn btn-primary">🖥 Open kiosk</a>
+                <button class="btn btn-ghost" onclick="toast('New kiosk link generated','success')">↺ Regenerate link</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2>Customise Kiosk</h2></div>
+            <div class="card-body">
+              <div class="form-field"><label>Kiosk title</label><input type="text" value="Acme Technologies — Attendance" /></div>
+              <div class="form-field"><label>Welcome message</label><textarea>Please look at the camera to clock in or out.</textarea></div>
+              <div class="form-field">
+                <label>Theme</label>
+                <select><option>Dark (default)</option><option>Light</option><option>Company brand</option></select>
+              </div>
+              <button class="btn btn-primary" onclick="toast('Kiosk settings saved','success')">Save & preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header"><h2>Embed Instructions</h2></div>
+            <div class="card-body">
+              <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;">Paste the snippet below into any HTML page to embed the FRaaS kiosk directly. The iframe auto-sizes and requires camera permission from the user's browser.</p>
+
+              <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Step 1 — Embed tag</div>
+              <div class="embed-preview" style="margin-bottom:18px;">
+                <div class="embed-toolbar">
+                  <div class="dot" style="background:#ef4444;"></div>
+                  <div class="dot" style="background:#f59e0b;"></div>
+                  <div class="dot" style="background:#22d3a5;"></div>
+                  <span style="font-size:0.75rem;color:var(--muted);margin-left:8px;">HTML</span>
+                  <button class="copy-btn" style="margin-left:auto;" onclick="toast('Embed code copied!','success')">📋 Copy</button>
+                </div>
+                <div class="embed-code">
+<span class="tag">&lt;iframe</span><br>
+&nbsp;&nbsp;<span class="attr">src</span>=<span class="val">"https://app.facesync.io/kiosk/org_527df553"</span><br>
+&nbsp;&nbsp;<span class="attr">width</span>=<span class="val">"100%"</span><br>
+&nbsp;&nbsp;<span class="attr">height</span>=<span class="val">"600"</span><br>
+&nbsp;&nbsp;<span class="attr">frameborder</span>=<span class="val">"0"</span><br>
+&nbsp;&nbsp;<span class="attr">allow</span>=<span class="val">"camera"</span><br>
+&nbsp;&nbsp;<span class="attr">title</span>=<span class="val">"FRaaS Attendance Kiosk"</span><br>
+<span class="tag">&gt;&lt;/iframe&gt;</span>
+                </div>
+              </div>
+
+              <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Step 2 — Add camera permission header</div>
+              <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;font-family:monospace;font-size:0.78rem;color:var(--muted);line-height:1.8;margin-bottom:18px;">
+                <span style="color:#22d3a5;">Permissions-Policy:</span> camera=(self "https://app.facesync.io")
+              </div>
+
+              <div style="background:rgba(79,142,247,0.07);border:1px solid rgba(79,142,247,0.2);border-radius:var(--radius-sm);padding:14px 16px;font-size:0.83rem;line-height:1.65;">
+                <strong>💡 Notes:</strong><br>
+                <span style="color:var(--muted);">• The iframe requests camera access from the user automatically.<br>
+                • Works on Chrome, Edge, and Firefox. Safari requires user gesture.<br>
+                • All recognition data is sent to your FRaaS account — no data is stored in the iframe host page.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- Add Webhook Modal -->
+<div class="modal-overlay" id="addWebhookModal" onclick="closeModalOutside(event,'addWebhookModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addWebhookModal')">✕</button>
+    <h2>Add Webhook Endpoint</h2>
+    <p>Enter the URL to receive POST requests when attendance events occur.</p>
+    <div class="form-field"><label>Endpoint URL</label><input type="url" placeholder="https://your-server.com/webhook" /></div>
+    <div class="form-field"><label>Subscribe to events</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.85rem;"><input type="checkbox" checked style="accent-color:var(--accent);"> attendance.in</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.85rem;"><input type="checkbox" checked style="accent-color:var(--accent);"> attendance.out</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.85rem;"><input type="checkbox" style="accent-color:var(--accent);"> user.registered</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;color:var(--muted);font-size:0.85rem;"><input type="checkbox" style="accent-color:var(--accent);"> recognition.failed</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addWebhookModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('addWebhookModal');toast('Webhook endpoint added','success')">Add endpoint</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editWebhookModal" onclick="closeModalOutside(event,'editWebhookModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editWebhookModal')">✕</button>
+    <h2>Edit Webhook</h2>
+    <div class="form-field"><label>Endpoint URL</label><input type="url" value="https://hrms.acme.co/api/facesync/events" /></div>
+    <div class="form-field"><label>Status</label>
+      <select><option>Active</option><option>Disabled</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="closeModal('editWebhookModal');toast('Webhook deleted','warn')">Delete</button>
+      <button class="btn btn-primary" onclick="closeModal('editWebhookModal');toast('Webhook updated','success')">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastEl"></div>
+
+<style>
+  .day-btn { padding: 5px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all .15s; font-family: 'Inter',sans-serif; }
+  .day-btn.active { background: var(--accent-glow); border-color: rgba(79,142,247,0.3); color: var(--accent); }
+</style>
+
+<script>
+  function switchPanel(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    el.classList.add('active');
+    const titles = { webhooks:'Webhooks', 'reports-wh':'Webhook Reports', embed:'External Login & Embed', settings:'Settings', reports:'Report Generation' };
+    document.getElementById('pageTitle').textContent = titles[id] || id;
+  }
+
+  function showModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+  let toastTimer;
+  function toast(msg, type='') {
+    const el = document.getElementById('toastEl');
+    el.textContent = msg; el.className = 'toast ' + type; el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  function revealSecret() {
+    document.getElementById('secretHidden').style.display = 'none';
+    document.getElementById('secretRevealed').style.display = 'block';
+    const key = 'whsec_k3y_' + Math.random().toString(36).slice(2,22);
+    document.getElementById('secretVal').textContent = key;
+  }
+  function hideSecret() {
+    document.getElementById('secretHidden').style.display = 'flex';
+    document.getElementById('secretRevealed').style.display = 'none';
+  }
+  function copySecret() {
+    navigator.clipboard?.writeText(document.getElementById('secretVal').textContent);
+    toast('Secret copied — store it securely!', 'warn');
+  }
+  function regenerateSecret() {
+    if (confirm('Regenerating the secret will immediately invalidate the current one. Any live integrations must be updated. Continue?')) {
+      revealSecret(); toast('New secret generated', 'warn');
+    }
+  }
+  function copyToast(id) {
+    navigator.clipboard?.writeText(document.getElementById(id).textContent);
+    toast('Copied!', 'success');
+  }
+  function toggleDay(btn) { btn.classList.toggle('active'); }
+  function setMode(mode) { }
+  function selectReport(el) {
+    document.querySelectorAll('.report-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>
