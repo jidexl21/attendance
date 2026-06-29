@@ -299,7 +299,7 @@
           spellcheck="false"
           required
         />
-        <span class="subdomain-suffix">.xl21.org</span>
+        <span class="subdomain-suffix">.fraas.io</span>
         <span class="subdomain-status" id="subdomainStatus"></span>
       </div>
       <div class="subdomain-hint" id="subdomainHint">Choose a subdomain for your organisation's FRaaS workspace.</div>
@@ -442,19 +442,19 @@
     wrap.className     = 'subdomain-wrap';
     status.innerHTML   = '<span class="spin-icon">⟳</span>';
     hint.className     = 'subdomain-hint checking';
-    hint.textContent   = `Checking availability of ${val}.xl21.org…`;
+    hint.textContent   = `Checking availability of ${val}.fraas.io…`;
 
     subdomainTimer = setTimeout(() => {
       if (TAKEN.has(val)) {
         wrap.className   = 'subdomain-wrap is-taken';
         status.textContent = '✕';
         hint.className   = 'subdomain-hint taken';
-        hint.textContent = `${val}.xl21.org is already taken. Try a variation.`;
+        hint.textContent = `${val}.fraas.io is already taken. Try a variation.`;
       } else {
         wrap.className   = 'subdomain-wrap is-available';
         status.textContent = '✓';
         hint.className   = 'subdomain-hint ok';
-        hint.textContent = `✓ ${val}.xl21.org is available!`;
+        hint.textContent = `✓ ${val}.fraas.io is available!`;
       }
     }, 600);
   }
@@ -498,7 +498,7 @@
       const fakeKey = 'sk_' + Math.random().toString(36).slice(2,14) + Math.random().toString(36).slice(2,14);
       document.getElementById('apiKeyDisplay').textContent = fakeKey;
       // Show the assigned subdomain in success state
-      document.getElementById('subdomainDisplay').textContent = slug + '.xl21.org';
+      document.getElementById('subdomainDisplay').textContent = slug + '.fraas.io';
       document.getElementById('successState').style.display = 'block';
     }, 1400);
   }
